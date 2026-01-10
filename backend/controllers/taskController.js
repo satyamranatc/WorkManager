@@ -5,18 +5,33 @@ export const getAllTasks = async (req, res) => {
     try {
         const { workspace, status, priority, tags, startDate, endDate } = req.query;
 
+        if (!req.userId) {
+            console.warn("getAllTasks: No userId attached to request");
+            return res.status(401).json({ message: "Authentication required" });
+        }
+
         let filter = { ownerId: req.userId };
 
-        if (workspace) filter.workspace = workspace;
+        if (workspace && workspace !== 'undefined' && workspace !== 'null') {
+            filter.workspace = workspace;
+        }
         if (status) filter.status = status;
         if (priority) filter.priority = priority;
-        if (tags) filter.tags = { $in: tags.split(",") };
+        if (tags && typeof tags === 'string') filter.tags = { $in: tags.split(",") };
 
         if (startDate || endDate) {
             filter.dueDate = {};
-            if (startDate) filter.dueDate.$gte = new Date(startDate);
-            if (endDate) filter.dueDate.$lte = new Date(endDate);
+            if (startDate) {
+                const sDate = new Date(startDate);
+                if (!isNaN(sDate.getTime())) filter.dueDate.$gte = sDate;
+            }
+            if (endDate) {
+                const eDate = new Date(endDate);
+                if (!isNaN(eDate.getTime())) filter.dueDate.$lte = eDate;
+            }
         }
+
+        console.log(`Fetching tasks for user: ${req.userId} with filter:`, JSON.stringify(filter));
 
         const tasks = await Task.find(filter)
             .populate("workspace", "name color")
@@ -25,6 +40,7 @@ export const getAllTasks = async (req, res) => {
 
         res.json(tasks);
     } catch (error) {
+        console.error("Error in getAllTasks:", error);
         res.status(500).json({ message: error.message });
     }
 };

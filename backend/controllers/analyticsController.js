@@ -116,10 +116,9 @@ export const getStats = async (req, res) => {
             ownerId: req.userId,
         });
 
-        // Habits
         const habits = await Habit.find({ ...(workspace ? { workspace } : {}), ownerId: req.userId });
         const activeStreaks = habits.filter(h => h.currentStreak > 0).length;
-        const maxStreak = Math.max(...habits.map(h => h.longestStreak), 0);
+        const maxStreak = habits.length > 0 ? Math.max(...habits.map(h => h.longestStreak), 0) : 0;
 
         // Focus time (last 7 days)
         const sevenDaysAgo = new Date();
