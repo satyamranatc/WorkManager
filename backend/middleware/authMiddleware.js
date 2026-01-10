@@ -15,6 +15,9 @@ export const requireAuth = auth({
 export const attachUser = (req, res, next) => {
   if (req.auth && req.auth.payload) {
     req.userId = req.auth.payload.sub;
+    console.log(`User attached: ${req.userId}`);
+  } else {
+    console.warn("Auth info missing in request - attachUser middleware");
   }
   next();
 };

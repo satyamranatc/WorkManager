@@ -22,6 +22,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Simple request logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 connectDB();
 
 // API Routes
@@ -38,6 +44,20 @@ app.get("/", (req, res) => {
   res.json({ message: "To-Do App API is live" });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error("Global Error Handler:", err);
+  
+  // Handle Auth0 errors specifically
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({ message: 'Invalid or missing token', error: err.message });
+  }
+
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

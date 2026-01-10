@@ -15,6 +15,7 @@ export const getAllHabits = async (req, res) => {
 
         res.json(habits);
     } catch (error) {
+        console.error("Error in getAllHabits:", error);
         res.status(500).json({ message: error.message });
     }
 };

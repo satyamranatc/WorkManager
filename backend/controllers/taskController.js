@@ -59,6 +59,7 @@ export const createTask = async (req, res) => {
 
         res.status(201).json(populatedTask);
     } catch (error) {
+        console.error("Error in createTask:", error);
         res.status(400).json({ message: error.message });
     }
 };

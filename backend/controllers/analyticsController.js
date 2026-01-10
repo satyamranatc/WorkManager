@@ -27,11 +27,13 @@ export const getProgressTimeline = async (req, res) => {
         // Group by date
         const tasksByDate = {};
         tasks.forEach(task => {
-            const date = task.completedAt.toISOString().split('T')[0];
-            if (!tasksByDate[date]) {
-                tasksByDate[date] = [];
+            if (task.completedAt) {
+                const date = task.completedAt.toISOString().split('T')[0];
+                if (!tasksByDate[date]) {
+                    tasksByDate[date] = [];
+                }
+                tasksByDate[date].push(task);
             }
-            tasksByDate[date].push(task);
         });
 
         res.json({
@@ -40,6 +42,7 @@ export const getProgressTimeline = async (req, res) => {
             totalCompleted: tasks.length,
         });
     } catch (error) {
+        console.error("Error in getProgressTimeline:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -82,6 +85,7 @@ export const getAchievements = async (req, res) => {
             totalAchievements: achievements.length,
         });
     } catch (error) {
+        console.error("Error in getAchievements:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -149,6 +153,7 @@ export const getStats = async (req, res) => {
             },
         });
     } catch (error) {
+        console.error("Error in getStats:", error);
         res.status(500).json({ message: error.message });
     }
 };
