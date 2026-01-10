@@ -6,7 +6,7 @@ export const getAllNotes = async (req, res) => {
     try {
         const { workspace, convertedToTask } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
         if (workspace) filter.workspace = workspace;
         if (convertedToTask !== undefined) filter.convertedToTask = convertedToTask === "true";
 
@@ -24,7 +24,8 @@ export const getAllNotes = async (req, res) => {
 // Create note
 export const createNote = async (req, res) => {
     try {
-        const note = new Note(req.body);
+        const noteData = { ...req.body, ownerId: req.userId };
+        const note = new Note(noteData);
         const savedNote = await note.save();
 
         const populatedNote = await Note.findById(savedNote._id)
@@ -39,7 +40,7 @@ export const createNote = async (req, res) => {
 // Delete note
 export const deleteNote = async (req, res) => {
     try {
-        const note = await Note.findByIdAndDelete(req.params.id);
+        const note = await Note.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
 
         if (!note) {
             return res.status(404).json({ message: "Note not found" });
@@ -54,7 +55,7 @@ export const deleteNote = async (req, res) => {
 // Convert note to task
 export const convertToTask = async (req, res) => {
     try {
-        const note = await Note.findById(req.params.id);
+        const note = await Note.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!note) {
             return res.status(404).json({ message: "Note not found" });
@@ -69,6 +70,7 @@ export const convertToTask = async (req, res) => {
             title: note.content.substring(0, 100), // Use first 100 chars as title
             description: note.content,
             workspace: note.workspace,
+            ownerId: req.userId,
         });
 
         const savedTask = await task.save();
@@ -78,12 +80,12 @@ export const convertToTask = async (req, res) => {
         note.taskId = savedTask._id;
         await note.save();
 
-        const populatedTask = await Task.findById(savedTask._id)
+        const populatedTask = await Task.findOne({ _id: savedTask._id, ownerId: req.userId })
             .populate("workspace", "name color");
 
         res.json({
             task: populatedTask,
-            note: await Note.findById(note._id).populate("workspace", "name color"),
+            note: await Note.findOne({ _id: note._id, ownerId: req.userId }).populate("workspace", "name color"),
         });
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -24,6 +24,11 @@ const workspaceSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        ownerId: {
+            type: String,
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

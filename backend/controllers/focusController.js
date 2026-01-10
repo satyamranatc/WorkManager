@@ -10,6 +10,8 @@ export const startFocusSession = async (req, res) => {
             duration: duration || 25,
             startTime: new Date(),
             workspace,
+            ownerId: req.userId,
+            layer: req.body.layer || "growth",
         });
 
         const savedSession = await session.save();
@@ -27,7 +29,7 @@ export const startFocusSession = async (req, res) => {
 // End focus session
 export const endFocusSession = async (req, res) => {
     try {
-        const session = await FocusSession.findById(req.params.id);
+        const session = await FocusSession.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!session) {
             return res.status(404).json({ message: "Focus session not found" });
@@ -54,7 +56,7 @@ export const getFocusSessions = async (req, res) => {
     try {
         const { workspace, startDate, endDate, limit } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
         if (workspace) filter.workspace = workspace;
 
         if (startDate || endDate) {
@@ -92,6 +94,7 @@ export const getFocusStats = async (req, res) => {
         let filter = {
             startTime: { $gte: startDate },
             completed: true,
+            ownerId: req.userId,
         };
 
         if (workspace) filter.workspace = workspace;

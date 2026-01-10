@@ -9,6 +9,7 @@ import noteRoutes from "./routes/noteRoutes.js";
 import workspaceRoutes from "./routes/workspaceRoutes.js";
 import focusRoutes from "./routes/focusRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import { requireAuth, attachUser } from "./middleware/authMiddleware.js";
 
 dotenv.config();
 const app = express();
@@ -24,13 +25,14 @@ app.use(express.json());
 connectDB();
 
 // API Routes
-app.use("/api/tasks", taskRoutes);
-app.use("/api/projects", projectRoutes);
-app.use("/api/habits", habitRoutes);
-app.use("/api/notes", noteRoutes);
-app.use("/api/workspaces", workspaceRoutes);
-app.use("/api/focus", focusRoutes);
-app.use("/api/analytics", analyticsRoutes);
+// API Routes (Protected)
+app.use("/api/tasks", requireAuth, attachUser, taskRoutes);
+app.use("/api/projects", requireAuth, attachUser, projectRoutes);
+app.use("/api/habits", requireAuth, attachUser, habitRoutes);
+app.use("/api/notes", requireAuth, attachUser, noteRoutes);
+app.use("/api/workspaces", requireAuth, attachUser, workspaceRoutes);
+app.use("/api/focus", requireAuth, attachUser, focusRoutes);
+app.use("/api/analytics", requireAuth, attachUser, analyticsRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "To-Do App API is live" });

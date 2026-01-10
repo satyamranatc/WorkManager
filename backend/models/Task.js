@@ -60,6 +60,16 @@ const taskSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        ownerId: {
+            type: String,
+            required: true,
+            index: true,
+        },
+        layer: {
+            type: String,
+            enum: ["life", "growth"],
+            default: "life",
+        },
     },
     {
         timestamps: true,

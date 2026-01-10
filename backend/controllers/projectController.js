@@ -6,7 +6,7 @@ export const getAllProjects = async (req, res) => {
     try {
         const { workspace, status } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
         if (workspace) filter.workspace = workspace;
         if (status) filter.status = status;
 
@@ -17,10 +17,11 @@ export const getAllProjects = async (req, res) => {
         // Get task counts for each project
         const projectsWithCounts = await Promise.all(
             projects.map(async (project) => {
-                const taskCount = await Task.countDocuments({ project: project._id });
+                const taskCount = await Task.countDocuments({ project: project._id, ownerId: req.userId });
                 const completedCount = await Task.countDocuments({
                     project: project._id,
-                    completed: true
+                    completed: true,
+                    ownerId: req.userId
                 });
                 const progress = taskCount > 0 ? Math.round((completedCount / taskCount) * 100) : 0;
 
@@ -42,14 +43,14 @@ export const getAllProjects = async (req, res) => {
 // Get project by ID
 export const getProjectById = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id)
+        const project = await Project.findOne({ _id: req.params.id, ownerId: req.userId })
             .populate("workspace", "name color");
 
         if (!project) {
             return res.status(404).json({ message: "Project not found" });
         }
 
-        const tasks = await Task.find({ project: project._id })
+        const tasks = await Task.find({ project: project._id, ownerId: req.userId })
             .populate("workspace", "name color");
 
         const progress = await project.calculateProgress();
@@ -67,7 +68,8 @@ export const getProjectById = async (req, res) => {
 // Create project
 export const createProject = async (req, res) => {
     try {
-        const project = new Project(req.body);
+        const projectData = { ...req.body, ownerId: req.userId };
+        const project = new Project(projectData);
         const savedProject = await project.save();
 
         const populatedProject = await Project.findById(savedProject._id)
@@ -82,8 +84,8 @@ export const createProject = async (req, res) => {
 // Update project
 export const updateProject = async (req, res) => {
     try {
-        const project = await Project.findByIdAndUpdate(
-            req.params.id,
+        const project = await Project.findOneAndUpdate(
+            { _id: req.params.id, ownerId: req.userId },
             req.body,
             { new: true, runValidators: true }
         ).populate("workspace", "name color");
@@ -101,7 +103,7 @@ export const updateProject = async (req, res) => {
 // Delete project
 export const deleteProject = async (req, res) => {
     try {
-        const project = await Project.findByIdAndDelete(req.params.id);
+        const project = await Project.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
 
         if (!project) {
             return res.status(404).json({ message: "Project not found" });
@@ -109,7 +111,7 @@ export const deleteProject = async (req, res) => {
 
         // Optionally remove project reference from tasks
         await Task.updateMany(
-            { project: req.params.id },
+            { project: req.params.id, ownerId: req.userId },
             { $unset: { project: "" } }
         );
 
@@ -124,8 +126,8 @@ export const addTaskToProject = async (req, res) => {
     try {
         const { taskId } = req.body;
 
-        const task = await Task.findByIdAndUpdate(
-            taskId,
+        const task = await Task.findOneAndUpdate(
+            { _id: taskId, ownerId: req.userId },
             { project: req.params.id },
             { new: true }
         )
@@ -145,8 +147,8 @@ export const addTaskToProject = async (req, res) => {
 // Remove task from project
 export const removeTaskFromProject = async (req, res) => {
     try {
-        const task = await Task.findByIdAndUpdate(
-            req.params.taskId,
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.taskId, ownerId: req.userId },
             { $unset: { project: "" } },
             { new: true }
         )

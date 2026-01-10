@@ -14,6 +14,7 @@ export const getProgressTimeline = async (req, res) => {
         let filter = {
             completed: true,
             completedAt: { $gte: startDate },
+            ownerId: req.userId,
         };
 
         if (workspace) filter.workspace = workspace;
@@ -49,14 +50,14 @@ export const getAchievements = async (req, res) => {
         const achievements = [];
 
         // Total tasks completed
-        const totalTasks = await Task.countDocuments({ completed: true });
+        const totalTasks = await Task.countDocuments({ completed: true, ownerId: req.userId });
         if (totalTasks >= 1) achievements.push({ id: "first_task", name: "First Task", description: "Completed your first task", icon: "CheckCircle", unlocked: true });
         if (totalTasks >= 10) achievements.push({ id: "task_10", name: "Getting Started", description: "Completed 10 tasks", icon: "Target", unlocked: true });
         if (totalTasks >= 50) achievements.push({ id: "task_50", name: "Productive", description: "Completed 50 tasks", icon: "Zap", unlocked: true });
         if (totalTasks >= 100) achievements.push({ id: "task_100", name: "Centurion", description: "Completed 100 tasks", icon: "Award", unlocked: true });
 
         // Habit streaks
-        const habits = await Habit.find();
+        const habits = await Habit.find({ ownerId: req.userId });
         const maxStreak = Math.max(...habits.map(h => h.longestStreak), 0);
 
         if (maxStreak >= 7) achievements.push({ id: "streak_7", name: "Week Warrior", description: "7-day habit streak", icon: "Flame", unlocked: true });
@@ -64,7 +65,7 @@ export const getAchievements = async (req, res) => {
         if (maxStreak >= 100) achievements.push({ id: "streak_100", name: "Unstoppable", description: "100-day habit streak", icon: "Crown", unlocked: true });
 
         // Focus time
-        const focusSessions = await FocusSession.find({ completed: true });
+        const focusSessions = await FocusSession.find({ completed: true, ownerId: req.userId });
         const totalFocusMinutes = focusSessions.reduce((sum, s) => sum + s.actualDuration, 0);
         const totalFocusHours = Math.round(totalFocusMinutes / 60);
 
@@ -73,7 +74,7 @@ export const getAchievements = async (req, res) => {
         if (totalFocusHours >= 50) achievements.push({ id: "focus_50h", name: "Flow State", description: "50 hours of focus time", icon: "Sparkles", unlocked: true });
 
         // Projects completed
-        const completedProjects = await Task.distinct("project", { completed: true, project: { $ne: null } });
+        const completedProjects = await Task.distinct("project", { completed: true, project: { $ne: null }, ownerId: req.userId });
         if (completedProjects.length >= 1) achievements.push({ id: "project_1", name: "Project Complete", description: "Completed your first project", icon: "FolderCheck", unlocked: true });
 
         res.json({
@@ -90,7 +91,7 @@ export const getStats = async (req, res) => {
     try {
         const { workspace } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
         if (workspace) filter.workspace = workspace;
 
         // Tasks
@@ -108,10 +109,11 @@ export const getStats = async (req, res) => {
             ...filter,
             completed: true,
             completedAt: { $gte: today, $lt: tomorrow },
+            ownerId: req.userId,
         });
 
         // Habits
-        const habits = await Habit.find(workspace ? { workspace } : {});
+        const habits = await Habit.find({ ...(workspace ? { workspace } : {}), ownerId: req.userId });
         const activeStreaks = habits.filter(h => h.currentStreak > 0).length;
         const maxStreak = Math.max(...habits.map(h => h.longestStreak), 0);
 
@@ -123,6 +125,7 @@ export const getStats = async (req, res) => {
             ...(workspace ? { workspace } : {}),
             completed: true,
             startTime: { $gte: sevenDaysAgo },
+            ownerId: req.userId,
         });
 
         const focusMinutesThisWeek = recentSessions.reduce((sum, s) => sum + s.actualDuration, 0);

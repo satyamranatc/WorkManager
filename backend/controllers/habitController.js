@@ -5,7 +5,7 @@ export const getAllHabits = async (req, res) => {
     try {
         const { workspace, active } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
         if (workspace) filter.workspace = workspace;
         if (active !== undefined) filter.active = active === "true";
 
@@ -22,7 +22,7 @@ export const getAllHabits = async (req, res) => {
 // Get habit by ID
 export const getHabitById = async (req, res) => {
     try {
-        const habit = await Habit.findById(req.params.id)
+        const habit = await Habit.findOne({ _id: req.params.id, ownerId: req.userId })
             .populate("workspace", "name color");
 
         if (!habit) {
@@ -38,7 +38,8 @@ export const getHabitById = async (req, res) => {
 // Create habit
 export const createHabit = async (req, res) => {
     try {
-        const habit = new Habit(req.body);
+        const habitData = { ...req.body, ownerId: req.userId };
+        const habit = new Habit(habitData);
         const savedHabit = await habit.save();
 
         const populatedHabit = await Habit.findById(savedHabit._id)
@@ -53,8 +54,8 @@ export const createHabit = async (req, res) => {
 // Update habit
 export const updateHabit = async (req, res) => {
     try {
-        const habit = await Habit.findByIdAndUpdate(
-            req.params.id,
+        const habit = await Habit.findOneAndUpdate(
+            { _id: req.params.id, ownerId: req.userId },
             req.body,
             { new: true, runValidators: true }
         ).populate("workspace", "name color");
@@ -72,7 +73,7 @@ export const updateHabit = async (req, res) => {
 // Delete habit
 export const deleteHabit = async (req, res) => {
     try {
-        const habit = await Habit.findByIdAndDelete(req.params.id);
+        const habit = await Habit.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
 
         if (!habit) {
             return res.status(404).json({ message: "Habit not found" });
@@ -87,7 +88,7 @@ export const deleteHabit = async (req, res) => {
 // Check in habit for today
 export const checkInHabit = async (req, res) => {
     try {
-        const habit = await Habit.findById(req.params.id);
+        const habit = await Habit.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!habit) {
             return res.status(404).json({ message: "Habit not found" });
@@ -112,7 +113,7 @@ export const checkInHabit = async (req, res) => {
 // Get habit statistics
 export const getHabitStats = async (req, res) => {
     try {
-        const habit = await Habit.findById(req.params.id);
+        const habit = await Habit.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!habit) {
             return res.status(404).json({ message: "Habit not found" });

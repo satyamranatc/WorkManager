@@ -42,6 +42,16 @@ const projectSchema = new mongoose.Schema(
             ref: "Workspace",
             default: null,
         },
+        ownerId: {
+            type: String,
+            required: true,
+            index: true,
+        },
+        layer: {
+            type: String,
+            enum: ["life", "growth"],
+            default: "growth",
+        },
     },
     {
         timestamps: true,

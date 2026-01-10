@@ -26,6 +26,11 @@ const noteSchema = new mongoose.Schema(
             ref: "Workspace",
             default: null,
         },
+        ownerId: {
+            type: String,
+            required: true,
+            index: true,
+        },
     },
     {
         timestamps: true,

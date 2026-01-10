@@ -5,7 +5,7 @@ export const getAllTasks = async (req, res) => {
     try {
         const { workspace, status, priority, tags, startDate, endDate } = req.query;
 
-        let filter = {};
+        let filter = { ownerId: req.userId };
 
         if (workspace) filter.workspace = workspace;
         if (status) filter.status = status;
@@ -32,7 +32,7 @@ export const getAllTasks = async (req, res) => {
 // Get task by ID
 export const getTaskById = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id)
+        const task = await Task.findOne({ _id: req.params.id, ownerId: req.userId })
             .populate("workspace", "name color")
             .populate("project", "name color");
 
@@ -49,7 +49,8 @@ export const getTaskById = async (req, res) => {
 // Create task
 export const createTask = async (req, res) => {
     try {
-        const task = new Task(req.body);
+        const taskData = { ...req.body, ownerId: req.userId };
+        const task = new Task(taskData);
         const savedTask = await task.save();
 
         const populatedTask = await Task.findById(savedTask._id)
@@ -65,8 +66,8 @@ export const createTask = async (req, res) => {
 // Update task
 export const updateTask = async (req, res) => {
     try {
-        const task = await Task.findByIdAndUpdate(
-            req.params.id,
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.id, ownerId: req.userId },
             req.body,
             { new: true, runValidators: true }
         )
@@ -86,7 +87,7 @@ export const updateTask = async (req, res) => {
 // Delete task
 export const deleteTask = async (req, res) => {
     try {
-        const task = await Task.findByIdAndDelete(req.params.id);
+        const task = await Task.findOneAndDelete({ _id: req.params.id, ownerId: req.userId });
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -101,7 +102,7 @@ export const deleteTask = async (req, res) => {
 // Toggle task completion
 export const toggleTaskComplete = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -109,7 +110,7 @@ export const toggleTaskComplete = async (req, res) => {
 
         await task.toggleComplete();
 
-        const updatedTask = await Task.findById(task._id)
+        const updatedTask = await Task.findOne({ _id: task._id, ownerId: req.userId })
             .populate("workspace", "name color")
             .populate("project", "name color");
 
@@ -122,7 +123,7 @@ export const toggleTaskComplete = async (req, res) => {
 // Add subtask
 export const addSubtask = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -144,7 +145,7 @@ export const addSubtask = async (req, res) => {
 // Toggle subtask completion
 export const toggleSubtask = async (req, res) => {
     try {
-        const task = await Task.findById(req.params.id);
+        const task = await Task.findOne({ _id: req.params.id, ownerId: req.userId });
 
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -180,6 +181,7 @@ export const getTodayTasks = async (req, res) => {
         const tasks = await Task.find({
             dueDate: { $gte: today, $lt: tomorrow },
             completed: false,
+            ownerId: req.userId,
         })
             .populate("workspace", "name color")
             .populate("project", "name color")
@@ -203,6 +205,7 @@ export const getUpcomingTasks = async (req, res) => {
         const tasks = await Task.find({
             dueDate: { $gte: today, $lte: nextWeek },
             completed: false,
+            ownerId: req.userId,
         })
             .populate("workspace", "name color")
             .populate("project", "name color")
