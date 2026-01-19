@@ -95,8 +95,8 @@ const Dashboard = () => {
         <div className="space-y-8 animate-fade-in">
             {/* Welcome Section */}
             <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                    Welcome back! 👋
+                <h1 className="text-4xl font-bold text-teal-900 mb-2">
+                    Welcome Back Geek!
                 </h1>
                 <p className="text-gray-600 text-lg">
                     Here's what's happening with your tasks today.
